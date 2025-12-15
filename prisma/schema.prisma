@@ -1,0 +1,243 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+model User {
+  id                 String               @id
+  nickname           String               @unique
+  email              String               @unique
+  name               String
+  followersAmount    Int                  @default(0)
+  followingAmount    Int                  @default(0)
+  reviewsAmount      Int                  @default(0)
+  avatar             String               @default("null")
+  cover              String               @default("null")
+  createdDate        DateTime             @default(now())
+  updateDate         DateTime             @default(now())
+  verified           Boolean              @default(false)
+  developer          Boolean              @default(false)
+  //
+  privacy            UserPrivacy?
+  diary              Diary?
+  diaryPages         DiaryPages[]
+  review             Review[]
+  // 
+  following          Follows[]            @relation("userFollowing")
+  followers          Follows[]            @relation("userFollowers")
+  //
+  blocking           Blocks[]             @relation("userBlocker")
+  blocked            Blocks[]             @relation("userBlocked")
+  //
+  collections        Collections[]
+  gamesInCollections GamesInCollections[]
+  gameStatus         GameStatus[]
+  favorites          Favorites[]
+  userTierList       UserTierList?
+
+  //
+  @@unique([nickname, email])
+}
+
+model UserTierList {
+  id     Int    @id @default(autoincrement())
+  idUser String @unique
+  // gold
+  gold   Json   @default("{}")
+  // silver
+  silver Json   @default("{}")
+  // bronze
+  bronze Json   @default("{}")
+  // references
+  user   User   @relation(fields: [idUser], references: [id], onDelete: Cascade)
+}
+
+model UserPrivacy {
+  id         Int      @id @default(autoincrement())
+  idUser     String   @unique
+  favorites  Boolean  @default(true)
+  backlog    Boolean  @default(true)
+  wishlist   Boolean  @default(true)
+  playing    Boolean  @default(true)
+  paused     Boolean  @default(true)
+  finished   Boolean  @default(true)
+  dropped    Boolean  @default(true)
+  profile    Boolean  @default(true)
+  diary      Boolean  @default(false)
+  updateDate DateTime @default(now())
+  // references
+  user       User     @relation(fields: [idUser], references: [id], onDelete: Cascade)
+}
+
+model Diary {
+  id          Int          @id @default(autoincrement())
+  owner       String       @unique
+  amountPages Int          @default(0)
+  amountGames Int          @default(0)
+  updateDate  DateTime     @default(now())
+  // relations
+  user        User         @relation(fields: [owner], references: [id], onDelete: Cascade)
+  diaryPages  DiaryPages[]
+}
+
+model DiaryPages {
+  id              Int      @id @default(autoincrement())
+  idDiary         Int
+  idGame          Int
+  author          String
+  gameName        String
+  gameDescription String   @default("")
+  gameCover       String   @default("")
+  progress        Float    @default(0)
+  description     String
+  mood            Int?
+  registerDate    DateTime @default(now())
+  createDate      DateTime @default(now())
+  updateDate      DateTime @default(now())
+  //
+  diary           Diary    @relation(fields: [idDiary], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [author], references: [id], onDelete: Cascade)
+}
+
+model Follows {
+  id           Int      @id @default(autoincrement())
+  followerId   String   @map("followerId")
+  followedId   String   @map("followedId")
+  createDate   DateTime @default(now())
+  //
+  followerUser User     @relation("userFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  followedUser User     @relation("userFollowers", fields: [followedId], references: [id], onDelete: Cascade)
+
+  //
+  @@unique([followerId, followedId])
+}
+
+model Blocks {
+  id          Int      @id @default(autoincrement())
+  blockedId   String
+  blockerId   String
+  createDate  DateTime @default(now())
+  //
+  blockedUser User     @relation("userBlocked", fields: [blockedId], references: [id], onDelete: Cascade)
+  blockerUser User     @relation("userBlocker", fields: [blockerId], references: [id], onDelete: Cascade)
+
+  //
+  @@unique([blockedId, blockerId])
+}
+
+model Review {
+  id              Int       @id @default(autoincrement())
+  idGame          Int
+  gameCover       String
+  gameName        String
+  gameDescription String
+  author          String
+  rate            Float
+  review          String
+  spoiler         Boolean   @default(false)
+  platforms       String?
+  playTime        Int?
+  startDate       DateTime?
+  finishDate      DateTime?
+  playProgress    Int?
+  public          Boolean   @default(true)
+  createDate      DateTime  @default(now())
+  updateDate      DateTime  @default(now())
+  enabled         Boolean   @default(true)
+  //
+  user            User      @relation(fields: [author], references: [id], onDelete: Cascade)
+
+  @@unique([idGame, author])
+}
+
+model GameMetrics {
+  id             Int   @id @default(autoincrement())
+  idGame         Int   @unique
+  reviewsAmount  Int   @default(0)
+  reviewsAvarage Float @default(0)
+}
+
+model Collections {
+  id                 Int                  @id @default(autoincrement())
+  owner              String
+  name               String
+  description        String
+  amount             Int                  @default(0)
+  color              BigInt
+  icon               BigInt
+  public             Boolean              @default(true)
+  createDate         DateTime             @default(now())
+  updateDate         DateTime             @default(now())
+  //
+  user               User                 @relation(fields: [owner], references: [id], onDelete: Cascade)
+  gamesInCollections GamesInCollections[]
+}
+
+model GamesInCollections {
+  id              Int      @id @default(autoincrement())
+  idCollection    Int
+  idGame          Int
+  gameCover       String
+  gameName        String
+  gameDescription String
+  owner           String
+  createDate      DateTime @default(now())
+
+  user       User        @relation(fields: [owner], references: [id], onDelete: Cascade)
+  collection Collections @relation(fields: [idCollection], references: [id], onDelete: Cascade)
+}
+
+model GameStatus {
+  id              Int      @id @default(autoincrement())
+  idGame          Int
+  idUser          String
+  status          Int
+  gameCover       String
+  gameName        String
+  gameDescription String
+  createDate      DateTime @default(now())
+  updateDate      DateTime @default(now())
+  //
+  user            User     @relation(fields: [idUser], references: [id], onDelete: Cascade)
+
+  @@unique([idGame, idUser])
+}
+
+model Favorites {
+  id              Int      @id @default(autoincrement())
+  idGame          Int
+  gameCover       String
+  gameName        String
+  gameDescription String
+  idUser          String
+  createDate      DateTime @default(now())
+  //
+  user            User     @relation(fields: [idUser], references: [id], onDelete: Cascade)
+
+  @@unique([idGame, idUser])
+}
+
+model ExploreList {
+  id         Int      @id @default(autoincrement())
+  highlight  String
+  topSellers String
+  topWanted  String
+  topNewest  String
+  createDate DateTime @default(now())
+}

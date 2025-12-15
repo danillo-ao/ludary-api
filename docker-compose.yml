@@ -1,0 +1,18 @@
+version: '3.7'
+
+services:
+  db:
+    image: postgres
+    container_name: ludary-postgres
+    restart: always
+    ports: 
+      - '5432:5432'
+    environment:
+      - POSTGRES_USER=ludary
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_DB=ludary
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+volumes:
+  postgres-data:
