@@ -1,5 +1,5 @@
 import { IsEmail, IsString } from 'class-validator';
-import { User, UserBadges, UserDiary, UserMetrics, UserPrivacy } from 'generated/prisma/client';
+import { User, UserBadges, UserDiary, UserMetrics, UserPrivacy } from '@prisma/client';
 
 export class RegisterUserDto {
   @IsString()
