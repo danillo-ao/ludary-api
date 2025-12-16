@@ -23,8 +23,8 @@ model User {
   nickname           String               @unique
   email              String               @unique
   name               String
-  avatar             String               @default("null")
-  cover              String               @default("null")
+  avatar             String?
+  cover              String?
   createdDate        DateTime             @default(now())
   updateDate         DateTime             @default(now())
   //
@@ -52,16 +52,18 @@ model User {
 }
 
 model UserTierList {
-  id     Int    @id @default(autoincrement())
-  idUser String @unique
+  id         Int      @id @default(autoincrement())
+  idUser     String   @unique
   // gold
-  gold   Json   @default("{}")
+  gold       Json     @default("{\"id\":null,\"name\":null,\"cover\":null}")
   // silver
-  silver Json   @default("{}")
+  silver     Json     @default("{\"id\":null,\"name\":null,\"cover\":null}")
   // bronze
-  bronze Json   @default("{}")
+  bronze     Json     @default("{\"id\":null,\"name\":null,\"cover\":null}")
+  // update date
+  updateDate DateTime @default(now())
   // references
-  user   User   @relation(fields: [idUser], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [idUser], references: [id], onDelete: Cascade)
 }
 
 model UserPrivacy {
@@ -121,8 +123,8 @@ model UserDiaryPages {
   idGame          Int
   idUser          String
   gameName        String
-  gameDescription String    @default("")
-  gameCover       String    @default("")
+  gameDescription String?
+  gameCover       String?
   progress        Float     @default(0)
   description     String
   mood            Int?

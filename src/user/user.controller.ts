@@ -1,6 +1,6 @@
 import { Body, Controller, Inject, Post } from '@nestjs/common';
 import { UserService } from './user.service';
-import { RegisterUserDto } from './user.interface';
+import { UserResponse, RegisterUserDto } from './user.interface';
 
 @Controller('user')
 export class UserController {
@@ -8,7 +8,7 @@ export class UserController {
   private readonly userService: UserService;
 
   @Post('register')
-  register(@Body() registerUserDto: RegisterUserDto): Promise<boolean> {
+  register(@Body() registerUserDto: RegisterUserDto): Promise<UserResponse> {
     return this.userService.registerUser(registerUserDto);
   }
 }

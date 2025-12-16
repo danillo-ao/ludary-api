@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "User" ALTER COLUMN "avatar" SET DEFAULT '',
+ALTER COLUMN "cover" SET DEFAULT '';

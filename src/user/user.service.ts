@@ -1,6 +1,6 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateUserDefaultsResponse, RegisterUserDto } from './user.interface';
+import { CreateUserDefaultsResponse, UserResponse, RegisterUserDto } from './user.interface';
 import { SupabaseService } from 'src/supabase/supabase.service';
 import { UserHelper } from './user.helper';
 
@@ -15,7 +15,7 @@ export class UserService {
   @Inject(SupabaseService)
   private readonly supabase: SupabaseService;
 
-  async registerUser(registerUserDto: RegisterUserDto) {
+  async registerUser(registerUserDto: RegisterUserDto): Promise<UserResponse> {
     const { email, password, nickname } = registerUserDto;
 
     const existedUser = await this.prisma.user.findFirst({
@@ -37,8 +37,7 @@ export class UserService {
 
     const idUser = user.data.user.id;
     const defaults = await this.createUserDefaults(idUser, registerUserDto);
-    console.log(this.userHelper.composeUserDefaults(defaults));
-    return true;
+    return this.userHelper.composeUserDefaults(defaults);
   }
 
   async createUserDefaults(idUser: string, dto: RegisterUserDto): Promise<CreateUserDefaultsResponse> {
@@ -46,13 +45,14 @@ export class UserService {
       const user = await this.prisma.user.create({
         data: { id: idUser, email: dto.email, nickname: dto.nickname, name: dto.name },
       });
-      const [userBadges, userMetrics, userPrivacy, userDiary] = await Promise.all([
+      const [userBadges, userMetrics, userPrivacy, userDiary, userTierList] = await Promise.all([
         this.prisma.userBadges.create({ data: { idUser } }),
         this.prisma.userMetrics.create({ data: { idUser } }),
         this.prisma.userPrivacy.create({ data: { idUser } }),
         this.prisma.userDiary.create({ data: { idUser } }),
+        this.prisma.userTierList.create({ data: { idUser } }),
       ]);
-      return { user, userBadges, userMetrics, userPrivacy, userDiary };
+      return { user, userBadges, userMetrics, userPrivacy, userDiary, userTierList };
     } catch (_) {
       throw new BadRequestException('Cannot create this user', {
         description: 'faile to create user defaults',
