@@ -24,19 +24,14 @@ model User {
   nickname           String               @unique
   email              String               @unique
   name               String
-  followersAmount    Int                  @default(0)
-  followingAmount    Int                  @default(0)
-  reviewsAmount      Int                  @default(0)
   avatar             String               @default("null")
   cover              String               @default("null")
   createdDate        DateTime             @default(now())
   updateDate         DateTime             @default(now())
-  verified           Boolean              @default(false)
-  developer          Boolean              @default(false)
   //
   privacy            UserPrivacy?
-  diary              Diary?
-  diaryPages         DiaryPages[]
+  diary              UserDiary?
+  diaryPages         UserDiaryPages[]
   review             Review[]
   // 
   following          Follows[]            @relation("userFollowing")
@@ -50,6 +45,8 @@ model User {
   gameStatus         GameStatus[]
   favorites          Favorites[]
   userTierList       UserTierList?
+  userBadges         UserBadges?
+  userMetrics        UserMetrics?
 
   //
   @@unique([nickname, email])
@@ -85,34 +82,57 @@ model UserPrivacy {
   user       User     @relation(fields: [idUser], references: [id], onDelete: Cascade)
 }
 
-model Diary {
-  id          Int          @id @default(autoincrement())
-  owner       String       @unique
-  amountPages Int          @default(0)
-  amountGames Int          @default(0)
-  updateDate  DateTime     @default(now())
-  // relations
-  user        User         @relation(fields: [owner], references: [id], onDelete: Cascade)
-  diaryPages  DiaryPages[]
+model UserBadges {
+  id         Int      @id @default(autoincrement())
+  idUser     String   @unique
+  updateDate DateTime @default(now())
+  // badges
+  verified   Boolean  @default(false)
+  developer  Boolean  @default(false)
+  // references
+  user       User     @relation(fields: [idUser], references: [id], onDelete: Cascade)
 }
 
-model DiaryPages {
+model UserMetrics {
   id              Int      @id @default(autoincrement())
+  idUser          String   @unique
+  updateDate      DateTime @default(now())
+  // metrics
+  followersAmount Int      @default(0)
+  followingAmount Int      @default(0)
+  reviewsAmount   Int      @default(0)
+  // references
+  user            User     @relation(fields: [idUser], references: [id], onDelete: Cascade)
+}
+
+model UserDiary {
+  id          Int              @id @default(autoincrement())
+  idUser      String           @unique
+  amountPages Int              @default(0)
+  amountGames Int              @default(0)
+  updateDate  DateTime         @default(now())
+  // relations
+  user        User             @relation(fields: [idUser], references: [id], onDelete: Cascade)
+  diaryPages  UserDiaryPages[]
+}
+
+model UserDiaryPages {
+  id              Int       @id @default(autoincrement())
   idDiary         Int
   idGame          Int
-  author          String
+  idUser          String
   gameName        String
-  gameDescription String   @default("")
-  gameCover       String   @default("")
-  progress        Float    @default(0)
+  gameDescription String    @default("")
+  gameCover       String    @default("")
+  progress        Float     @default(0)
   description     String
   mood            Int?
-  registerDate    DateTime @default(now())
-  createDate      DateTime @default(now())
-  updateDate      DateTime @default(now())
+  registerDate    DateTime  @default(now())
+  createDate      DateTime  @default(now())
+  updateDate      DateTime  @default(now())
   //
-  diary           Diary    @relation(fields: [idDiary], references: [id], onDelete: Cascade)
-  user            User     @relation(fields: [author], references: [id], onDelete: Cascade)
+  userDiary       UserDiary @relation(fields: [idDiary], references: [id], onDelete: Cascade)
+  user            User      @relation(fields: [idUser], references: [id], onDelete: Cascade)
 }
 
 model Follows {
@@ -147,7 +167,7 @@ model Review {
   gameCover       String
   gameName        String
   gameDescription String
-  author          String
+  idUser          String
   rate            Float
   review          String
   spoiler         Boolean   @default(false)
@@ -161,9 +181,9 @@ model Review {
   updateDate      DateTime  @default(now())
   enabled         Boolean   @default(true)
   //
-  user            User      @relation(fields: [author], references: [id], onDelete: Cascade)
+  user            User      @relation(fields: [idUser], references: [id], onDelete: Cascade)
 
-  @@unique([idGame, author])
+  @@unique([idGame, idUser])
 }
 
 model GameMetrics {
@@ -175,7 +195,7 @@ model GameMetrics {
 
 model Collections {
   id                 Int                  @id @default(autoincrement())
-  owner              String
+  idUser             String
   name               String
   description        String
   amount             Int                  @default(0)
@@ -185,7 +205,7 @@ model Collections {
   createDate         DateTime             @default(now())
   updateDate         DateTime             @default(now())
   //
-  user               User                 @relation(fields: [owner], references: [id], onDelete: Cascade)
+  user               User                 @relation(fields: [idUser], references: [id], onDelete: Cascade)
   gamesInCollections GamesInCollections[]
 }
 
@@ -196,10 +216,10 @@ model GamesInCollections {
   gameCover       String
   gameName        String
   gameDescription String
-  owner           String
+  idUser          String
   createDate      DateTime @default(now())
 
-  user       User        @relation(fields: [owner], references: [id], onDelete: Cascade)
+  user       User        @relation(fields: [idUser], references: [id], onDelete: Cascade)
   collection Collections @relation(fields: [idCollection], references: [id], onDelete: Cascade)
 }
 

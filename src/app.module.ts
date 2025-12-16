@@ -5,6 +5,7 @@ import { SupabaseModule } from './supabase/supabase.module';
 import { UserModule } from './user/user.module';
 import { PrismaService } from './prisma/prisma.service';
 import { PrismaModule } from './prisma/prisma.module';
+import { IgdbModule } from './igdb/igdb.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { PrismaModule } from './prisma/prisma.module';
     SupabaseModule,
     UserModule,
     PrismaModule,
+    IgdbModule,
   ],
   controllers: [],
   providers: [PrismaService],

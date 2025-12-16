@@ -1,4 +1,5 @@
 import { IsEmail, IsString } from 'class-validator';
+import { User, UserBadges, UserDiary, UserMetrics, UserPrivacy } from 'generated/prisma/client';
 
 export class RegisterUserDto {
   @IsString()
@@ -12,4 +13,12 @@ export class RegisterUserDto {
 
   @IsString()
   password: string;
+}
+
+export interface CreateUserDefaultsResponse {
+  user: User;
+  userBadges: UserBadges;
+  userMetrics: UserMetrics;
+  userPrivacy: UserPrivacy;
+  userDiary: UserDiary;
 }

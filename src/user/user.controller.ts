@@ -9,6 +9,6 @@ export class UserController {
 
   @Post('register')
   register(@Body() registerUserDto: RegisterUserDto): Promise<boolean> {
-    return this.userService.register(registerUserDto);
+    return this.userService.registerUser(registerUserDto);
   }
 }
