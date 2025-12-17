@@ -31,8 +31,7 @@ export class UserService {
       });
     }
 
-    // TODO: remove email_confirm
-    const user = await this.supabase.getClient().auth.admin.createUser({ email, password, email_confirm: true });
+    const user = await this.supabase.getClient().auth.admin.createUser({ email, password });
     if (user.error) {
       throw new BadRequestException('Cannot create this user', { description: USER_RESPONSES.USER_ALREADY_EXISTS });
     }
@@ -76,7 +75,7 @@ export class UserService {
     }
   }
 
-  async getUser(id: string, request: Request): Promise<UserResponse> {
+  async getUserProfile(id: string, request: Request): Promise<UserResponse> {
     try {
       const userData = await this.prisma.user.findFirst({
         where: { id },

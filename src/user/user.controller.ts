@@ -20,7 +20,7 @@ export class UserController {
 
   @Get('profile/:id')
   @UseGuards(SupabaseOptionalAuthGuard)
-  getUser(@Param('id') id: string, @Req() request: Request): Promise<UserResponse> {
-    return this.userService.getUser(id, request);
+  getUserProfile(@Param('id') id: string, @Req() request: Request): Promise<UserResponse> {
+    return this.userService.getUserProfile(id, request);
   }
 }
