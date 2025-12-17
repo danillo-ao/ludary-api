@@ -3,6 +3,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateUserDefaultsResponse, UserResponse, RegisterUserDto } from './user.interface';
 import { SupabaseService } from 'src/supabase/supabase.service';
 import { UserHelper } from './user.helper';
+import { USER_RESPONSES } from './user.responses';
 
 @Injectable()
 export class UserService {
@@ -23,16 +24,14 @@ export class UserService {
     });
 
     if (existedUser) {
-      throw new BadRequestException('This user already exists', {
-        description: 'This email or nickname is already in use',
+      throw new BadRequestException('This email or nickname is already in use', {
+        description: USER_RESPONSES.USER_ALREADY_EXISTS,
       });
     }
 
     const user = await this.supabase.getClient().auth.admin.createUser({ email, password });
     if (user.error) {
-      throw new BadRequestException('Cannot create this user', {
-        description: user.error.message,
-      });
+      throw new BadRequestException('Cannot create this user', { description: USER_RESPONSES.USER_ALREADY_EXISTS });
     }
 
     const idUser = user.data.user.id;
@@ -54,8 +53,8 @@ export class UserService {
       ]);
       return { user, userBadges, userMetrics, userPrivacy, userDiary, userTierList };
     } catch (_) {
-      throw new BadRequestException('Cannot create this user', {
-        description: 'faile to create user defaults',
+      throw new BadRequestException('Failed to create user defaults', {
+        description: USER_RESPONSES.USER_DEFAULTS_CREATION_FAILED,
       });
     }
   }
