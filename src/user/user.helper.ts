@@ -2,11 +2,17 @@ import { CreateUserDefaultsResponse, UserResponse } from './user.interface';
 
 export class UserHelper {
   composeUserDefaults({ user, ...data }: CreateUserDefaultsResponse): UserResponse {
-    const { id: _idBadge, idUser: _idUserBadge, updateDate: _updateDateBadge, ...badges } = data.userBadges;
-    const { id: _idMetric, idUser: _idUserMetric, updateDate: _updateDateMetric, ...metrics } = data.userMetrics;
-    const { id: _idPrivacy, idUser: _idUserPrivacy, updateDate: _updateDatePrivacy, ...privacy } = data.userPrivacy;
-    const { id: _idDiary, idUser: _idUserDiary, updateDate: _updateDateDiary, ...diary } = data.userDiary;
-    const { id: _idTL, idUser: _idUserTL, updateDate: _updateDateTL, ...tierList } = data.userTierList;
+    function stripIdsAndUpdateDate<T extends Record<string, any>>(obj: T | undefined) {
+      if (!obj) return undefined;
+      const { id: _id, idUser: _idUser, updateDate: _updateDate, ...rest } = obj;
+      return rest;
+    }
+
+    const badges = stripIdsAndUpdateDate(data.userBadges);
+    const metrics = stripIdsAndUpdateDate(data.userMetrics);
+    const privacy = stripIdsAndUpdateDate(data.userPrivacy);
+    const diary = stripIdsAndUpdateDate(data.userDiary);
+    const tierList = stripIdsAndUpdateDate(data.userTierList);
 
     return {
       ...user,

@@ -28,9 +28,6 @@ model User {
   createdDate        DateTime             @default(now())
   updateDate         DateTime             @default(now())
   //
-  privacy            UserPrivacy?
-  diary              UserDiary?
-  diaryPages         UserDiaryPages[]
   review             Review[]
   // 
   following          Follows[]            @relation("userFollowing")
@@ -43,9 +40,13 @@ model User {
   gamesInCollections GamesInCollections[]
   gameStatus         GameStatus[]
   favorites          Favorites[]
+  //
   userTierList       UserTierList?
   userBadges         UserBadges?
   userMetrics        UserMetrics?
+  userPrivacy        UserPrivacy?
+  userDiary          UserDiary?
+  userDiaryPages     UserDiaryPages[]
 
   //
   @@unique([nickname, email])
@@ -54,15 +55,11 @@ model User {
 model UserTierList {
   id         Int      @id @default(autoincrement())
   idUser     String   @unique
-  // gold
   gold       Json     @default("{\"id\":null,\"name\":null,\"cover\":null}")
-  // silver
   silver     Json     @default("{\"id\":null,\"name\":null,\"cover\":null}")
-  // bronze
   bronze     Json     @default("{\"id\":null,\"name\":null,\"cover\":null}")
-  // update date
   updateDate DateTime @default(now())
-  // references
+  //
   user       User     @relation(fields: [idUser], references: [id], onDelete: Cascade)
 }
 

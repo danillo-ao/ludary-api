@@ -40,6 +40,9 @@ export class SupabaseOptionalAuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const authHeader = request.headers['authorization'];
 
+    request.user = undefined;
+    request.authenticated = false;
+
     if (authHeader) {
       const [, token] = authHeader?.split(' ');
       if (token) {
