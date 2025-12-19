@@ -6,6 +6,7 @@ import { UserModule } from './user/user.module';
 import { PrismaService } from './prisma/prisma.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { IgdbModule } from './igdb/igdb.module';
+import { IgdbService } from './igdb/igdb.service';
 
 @Module({
   imports: [
@@ -17,6 +18,6 @@ import { IgdbModule } from './igdb/igdb.module';
     IgdbModule,
   ],
   controllers: [],
-  providers: [PrismaService],
+  providers: [PrismaService, IgdbService],
 })
 export class AppModule {}
