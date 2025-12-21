@@ -157,7 +157,21 @@ export class UserService {
 
   async updateUserPrivacy(updateUserPrivacyDto: UpdateUserPrivacyDto, user: User): Promise<UserResponse['privacy']> {
     try {
-      const privacy = await this.prisma.userPrivacy.update({ where: { idUser: user.id }, data: updateUserPrivacyDto });
+      const { profile, favorites, backlog, wishlist, playing, paused, finished, dropped } = updateUserPrivacyDto;
+
+      const privacy = await this.prisma.userPrivacy.update({
+        where: { idUser: user.id },
+        data: {
+          profile,
+          favorites,
+          backlog,
+          wishlist,
+          playing,
+          paused,
+          finished,
+          dropped,
+        },
+      });
       return stripIdsAndUpdateDate(privacy);
     } catch (_) {
       throw new BadRequestException('Failed to update user privacy', {
