@@ -1,19 +1,14 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import {
-  CreateUserDefaultsResponse,
-  UserResponse,
-  RegisterUserDto,
-  GetUserAccessResponse,
-  UpdateUserProfileDto,
-  UpdateUserResponse,
-} from './user.interface';
+import { RegisterUserDto, UpdateUserPrivacyDto, UpdateUserProfileDto } from './user.dto';
 import { SupabaseService } from 'src/supabase/supabase.service';
 import { UserHelper } from './user.helper';
-import { USER_RESPONSES } from './user.responses';
+import { USER_RESPONSES } from './user.constants';
 import { UserBadges, UserDiary, UserMetrics, UserPrivacy, UserTierList } from '@prisma/client';
 import { User } from '@supabase/supabase-js';
 import { CloudflareService } from 'src/cloudflare/cloudflare.service';
+import { CreateUserDefaultsResponse, GetUserAccessResponse, UpdateUserResponse, UserResponse } from './user.interfaces';
+import { stripIdsAndUpdateDate } from 'src/utils/parsers.util';
 
 @Injectable()
 export class UserService {
@@ -156,6 +151,17 @@ export class UserService {
     } catch (_) {
       throw new BadRequestException('Failed to update user profile', {
         description: USER_RESPONSES.USER_PROFILE_UPDATE_FAILED,
+      });
+    }
+  }
+
+  async updateUserPrivacy(updateUserPrivacyDto: UpdateUserPrivacyDto, user: User): Promise<UserResponse['privacy']> {
+    try {
+      const privacy = await this.prisma.userPrivacy.update({ where: { idUser: user.id }, data: updateUserPrivacyDto });
+      return stripIdsAndUpdateDate(privacy);
+    } catch (_) {
+      throw new BadRequestException('Failed to update user privacy', {
+        description: USER_RESPONSES.USER_PRIVACY_UPDATE_FAILED,
       });
     }
   }

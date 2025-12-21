@@ -1,28 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
 import { User, UserBadges, UserDiary, UserMetrics, UserPrivacy, UserTierList } from '@prisma/client';
-
-export class RegisterUserDto {
-  @IsString()
-  @IsNotEmpty()
-  name: string;
-
-  @IsString()
-  @IsNotEmpty()
-  nickname: string;
-
-  @IsEmail()
-  email: string;
-
-  @IsString()
-  @IsNotEmpty()
-  password: string;
-}
-
-export class UpdateUserProfileDto {
-  @IsString()
-  @IsNotEmpty()
-  name: string;
-}
 
 export interface CreateUserDefaultsResponse {
   user: User;

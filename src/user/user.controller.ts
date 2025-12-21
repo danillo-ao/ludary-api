@@ -13,17 +13,12 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { UserService } from './user.service';
-import {
-  UserResponse,
-  RegisterUserDto,
-  GetUserAccessResponse,
-  UpdateUserProfileDto,
-  UpdateUserResponse,
-} from './user.interface';
+import { RegisterUserDto, UpdateUserPrivacyDto, UpdateUserProfileDto } from './user.dto';
 import { SupabaseAuthGuard, SupabaseOptionalAuthGuard } from 'src/auth/auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { User } from 'src/auth/auth.decorator';
 import { User as SupabaseUser } from '@supabase/supabase-js';
+import { GetUserAccessResponse, UpdateUserResponse, UserResponse } from './user.interfaces';
 
 @Controller('user')
 export class UserController {
@@ -55,5 +50,14 @@ export class UserController {
     @User() user: SupabaseUser,
   ): Promise<UpdateUserResponse> {
     return this.userService.updateUserProfile(updateUserProfileDto, file, user);
+  }
+
+  @Put('profile/privacy')
+  @UseGuards(SupabaseAuthGuard)
+  updateUserPrivacy(
+    @Body() updateUserPrivacyDto: UpdateUserPrivacyDto,
+    @User() user: SupabaseUser,
+  ): Promise<UserResponse['privacy']> {
+    return this.userService.updateUserPrivacy(updateUserPrivacyDto, user);
   }
 }
