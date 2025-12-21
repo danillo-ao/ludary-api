@@ -1,7 +1,29 @@
-import { Body, Controller, Get, Inject, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Param,
+  Post,
+  Put,
+  Query,
+  Req,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import { UserService } from './user.service';
-import { UserResponse, RegisterUserDto, GetUserAccessResponse } from './user.interface';
-import { SupabaseOptionalAuthGuard } from 'src/auth/auth.guard';
+import {
+  UserResponse,
+  RegisterUserDto,
+  GetUserAccessResponse,
+  UpdateUserProfileDto,
+  UpdateUserResponse,
+} from './user.interface';
+import { SupabaseAuthGuard, SupabaseOptionalAuthGuard } from 'src/auth/auth.guard';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { User } from 'src/auth/auth.decorator';
+import { User as SupabaseUser } from '@supabase/supabase-js';
 
 @Controller('user')
 export class UserController {
@@ -22,5 +44,16 @@ export class UserController {
   @UseGuards(SupabaseOptionalAuthGuard)
   getUserProfile(@Param('id') id: string, @Req() request: Request): Promise<UserResponse> {
     return this.userService.getUserProfile(id, request);
+  }
+
+  @Put('profile/update')
+  @UseGuards(SupabaseAuthGuard)
+  @UseInterceptors(FileInterceptor('file'))
+  updateUserProfile(
+    @Body() updateUserProfileDto: UpdateUserProfileDto,
+    @UploadedFile() file: Express.Multer.File,
+    @User() user: SupabaseUser,
+  ): Promise<UpdateUserResponse> {
+    return this.userService.updateUserProfile(updateUserProfileDto, file, user);
   }
 }

@@ -1,11 +1,19 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateUserDefaultsResponse, UserResponse, RegisterUserDto, GetUserAccessResponse } from './user.interface';
+import {
+  CreateUserDefaultsResponse,
+  UserResponse,
+  RegisterUserDto,
+  GetUserAccessResponse,
+  UpdateUserProfileDto,
+  UpdateUserResponse,
+} from './user.interface';
 import { SupabaseService } from 'src/supabase/supabase.service';
 import { UserHelper } from './user.helper';
 import { USER_RESPONSES } from './user.responses';
 import { UserBadges, UserDiary, UserMetrics, UserPrivacy, UserTierList } from '@prisma/client';
 import { User } from '@supabase/supabase-js';
+import { CloudflareService } from 'src/cloudflare/cloudflare.service';
 
 @Injectable()
 export class UserService {
@@ -17,6 +25,9 @@ export class UserService {
 
   @Inject(SupabaseService)
   private readonly supabase: SupabaseService;
+
+  @Inject(CloudflareService)
+  private readonly cloudflare: CloudflareService;
 
   async registerUser(registerUserDto: RegisterUserDto): Promise<UserResponse> {
     const { email, password, nickname } = registerUserDto;
@@ -112,6 +123,40 @@ export class UserService {
       return userReturn;
     } catch (_) {
       throw new BadRequestException('User not found', { description: USER_RESPONSES.USER_NOT_FOUND });
+    }
+  }
+
+  async updateUserProfile(
+    updateUserProfileDto: UpdateUserProfileDto,
+    file: Express.Multer.File,
+    user: User,
+  ): Promise<UpdateUserResponse> {
+    try {
+      const currentUser = await this.prisma.user.findFirst({ where: { id: user.id } });
+
+      let fileName: string | undefined;
+      if (file) {
+        fileName = await this.cloudflare.uploadFile(file);
+      }
+
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          name: updateUserProfileDto.name,
+          avatar: fileName,
+        },
+      });
+
+      // if the user has an avatar and the new avatar is different, delete the old avatar
+      if (currentUser?.avatar && fileName) {
+        await this.cloudflare.deleteFile(currentUser.avatar);
+      }
+
+      return { name: updateUserProfileDto.name, avatar: fileName };
+    } catch (_) {
+      throw new BadRequestException('Failed to update user profile', {
+        description: USER_RESPONSES.USER_PROFILE_UPDATE_FAILED,
+      });
     }
   }
 }
