@@ -5,6 +5,7 @@ import { SupabaseModule } from './supabase/supabase.module';
 import { UserModule } from './user/user.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { IgdbModule } from './igdb/igdb.module';
+import { CloudflareModule } from './cloudflare/cloudflare.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { IgdbModule } from './igdb/igdb.module';
     UserModule,
     PrismaModule,
     IgdbModule,
+    CloudflareModule,
   ],
   controllers: [],
   providers: [],

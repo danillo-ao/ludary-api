@@ -1,18 +1,27 @@
-import { IsEmail, IsString } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
 import { User, UserBadges, UserDiary, UserMetrics, UserPrivacy, UserTierList } from '@prisma/client';
 
 export class RegisterUserDto {
   @IsString()
+  @IsNotEmpty()
   name: string;
 
   @IsString()
+  @IsNotEmpty()
   nickname: string;
 
   @IsEmail()
   email: string;
 
   @IsString()
+  @IsNotEmpty()
   password: string;
+}
+
+export class UpdateUserProfileDto {
+  @IsString()
+  @IsNotEmpty()
+  name: string;
 }
 
 export interface CreateUserDefaultsResponse {
@@ -30,6 +39,11 @@ export interface UserResponse extends User {
   privacy?: Omit<UserPrivacy, 'idUser' | 'updateDate' | 'id'>;
   diary?: Omit<UserDiary, 'idUser' | 'updateDate' | 'id'>;
   tierList?: Omit<UserTierList, 'idUser' | 'updateDate' | 'id'>;
+}
+
+export interface UpdateUserResponse {
+  name: string;
+  avatar?: string;
 }
 
 export interface GetUserAccessResponse {
