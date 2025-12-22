@@ -101,19 +101,19 @@ export default class IGDBQueries {
   /**
    *
    */
-  public static scrapperSearchGame = (param: string) => `
-    fields: name, first_release_date;
-    limit: 10;
-    search "${param}";
+  public static searchGameByName = (param: string) => `
+    fields: ${this.searchFields};
+    limit: 15;
+    where name ~ *"${param}"*;
   `;
 
   /**
    *
    */
-  public static searchGameByName = (param: string) => `
-    fields: ${this.searchFields};
-    limit: 15;
-    where name ~ *"${param}"*;
+  public static scrapperSearchGame = (param: string) => `
+    fields: name, first_release_date;
+    limit: 10;
+    search "${param}";
   `;
 
   /**

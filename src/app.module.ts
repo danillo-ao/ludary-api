@@ -6,6 +6,7 @@ import { UserModule } from './user/user.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { IgdbModule } from './igdb/igdb.module';
 import { CloudflareModule } from './cloudflare/cloudflare.module';
+import { GameModule } from './game/game.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { CloudflareModule } from './cloudflare/cloudflare.module';
     PrismaModule,
     IgdbModule,
     CloudflareModule,
+    GameModule,
   ],
   controllers: [],
   providers: [],
