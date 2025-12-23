@@ -29,8 +29,8 @@ export class GameService {
       [...queryStringResult.data, ...queryStringByNameResult.data].forEach((item: GameSearchResponse) => {
         combinedMap.set(item.id, item);
       });
-      const unifiedResults: GameSearchResponse[] = Array.from(combinedMap.values());
 
+      const unifiedResults: GameSearchResponse[] = Array.from(combinedMap.values());
       return unifiedResults;
     } catch (_) {
       throw new BadRequestException('Failed to search game', {

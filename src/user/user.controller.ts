@@ -16,7 +16,7 @@ import { UserService } from './user.service';
 import { RegisterUserDto, UpdateUserPrivacyDto, UpdateUserProfileDto } from './user.dto';
 import { SupabaseAuthGuard, SupabaseOptionalAuthGuard } from 'src/auth/auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { User } from 'src/auth/auth.decorator';
+import { UserDecorator } from 'src/auth/auth.decorator';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { GetUserAccessResponse, UpdateUserResponse, UserResponse } from './user.interfaces';
 
@@ -47,7 +47,7 @@ export class UserController {
   updateUserProfile(
     @Body() updateUserProfileDto: UpdateUserProfileDto,
     @UploadedFile() file: Express.Multer.File,
-    @User() user: SupabaseUser,
+    @UserDecorator() user: SupabaseUser,
   ): Promise<UpdateUserResponse> {
     return this.userService.updateUserProfile(updateUserProfileDto, file, user);
   }
@@ -56,7 +56,7 @@ export class UserController {
   @UseGuards(SupabaseAuthGuard)
   updateUserPrivacy(
     @Body() updateUserPrivacyDto: UpdateUserPrivacyDto,
-    @User() user: SupabaseUser,
+    @UserDecorator() user: SupabaseUser,
   ): Promise<UserResponse['privacy']> {
     return this.userService.updateUserPrivacy(updateUserPrivacyDto, user);
   }

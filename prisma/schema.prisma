@@ -55,9 +55,9 @@ model User {
 model UserTierList {
   id         Int      @id @default(autoincrement())
   idUser     String   @unique
-  gold       Json     @default("{\"id\":null,\"name\":null,\"cover\":null}")
-  silver     Json     @default("{\"id\":null,\"name\":null,\"cover\":null}")
-  bronze     Json     @default("{\"id\":null,\"name\":null,\"cover\":null}")
+  gold       Json?
+  silver     Json?
+  bronze     Json?
   updateDate DateTime @default(now())
   //
   user       User     @relation(fields: [idUser], references: [id], onDelete: Cascade)
@@ -92,15 +92,25 @@ model UserBadges {
 }
 
 model UserMetrics {
-  id              Int      @id @default(autoincrement())
-  idUser          String   @unique
-  updateDate      DateTime @default(now())
+  id         Int      @id @default(autoincrement())
+  idUser     String   @unique
+  updateDate DateTime @default(now())
+
   // metrics
-  followersAmount Int      @default(0)
-  followingAmount Int      @default(0)
-  reviewsAmount   Int      @default(0)
+  followersAmount Int @default(0)
+  followingAmount Int @default(0)
+  reviewsAmount   Int @default(0)
+  // games related metrics
+  favoritesAmount Int @default(0)
+  backlogAmount   Int @default(0)
+  wishlistAmount  Int @default(0)
+  playingAmount   Int @default(0)
+  pausedAmount    Int @default(0)
+  finishedAmount  Int @default(0)
+  droppedAmount   Int @default(0)
+
   // references
-  user            User     @relation(fields: [idUser], references: [id], onDelete: Cascade)
+  user User @relation(fields: [idUser], references: [id], onDelete: Cascade)
 }
 
 model UserDiary {
@@ -221,18 +231,27 @@ model GamesInCollections {
   collection Collections @relation(fields: [idCollection], references: [id], onDelete: Cascade)
 }
 
+enum GameStatusEnum {
+  backlog
+  playing
+  paused
+  finished
+  wishlist
+  dropped
+}
+
 model GameStatus {
-  id              Int      @id @default(autoincrement())
+  id              Int            @id @default(autoincrement())
   idGame          Int
   idUser          String
-  status          Int
+  status          GameStatusEnum
   gameCover       String
   gameName        String
   gameDescription String
-  createDate      DateTime @default(now())
-  updateDate      DateTime @default(now())
+  createDate      DateTime       @default(now())
+  updateDate      DateTime       @default(now())
   //
-  user            User     @relation(fields: [idUser], references: [id], onDelete: Cascade)
+  user            User           @relation(fields: [idUser], references: [id], onDelete: Cascade)
 
   @@unique([idGame, idUser])
 }
