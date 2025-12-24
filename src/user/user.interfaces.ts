@@ -25,3 +25,5 @@ export interface UpdateUserResponse {
 export interface GetUserAccessResponse {
   email: string;
 }
+
+export type UserMetricsResponse = Omit<UserMetrics, 'idUser' | 'updateDate' | 'id'>;

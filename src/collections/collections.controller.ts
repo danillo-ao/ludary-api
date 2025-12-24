@@ -39,13 +39,9 @@ export class CollectionsController {
     return this.collectionsService.deleteCollection(id, user);
   }
 
-  @Post(':id/game')
+  @Post('game')
   @UseGuards(SupabaseAuthGuard)
-  addGameToCollection(
-    @UserDecorator() user: User,
-    @Param('id') id: number,
-    @Body() body: AddGameToCollectionDto,
-  ): Promise<void> {
-    return this.collectionsService.handleAddGameToCollections(id, body, user);
+  addGameToCollection(@UserDecorator() user: User, @Body() body: AddGameToCollectionDto): Promise<void> {
+    return this.collectionsService.handleAddGameToCollections(body, user);
   }
 }

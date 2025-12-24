@@ -1,5 +1,6 @@
 import { stripIdsAndUpdateDate } from 'src/utils/parsers.util';
-import { CreateUserDefaultsResponse, UserResponse } from './user.interfaces';
+import { CreateUserDefaultsResponse, UserMetricsResponse, UserResponse } from './user.interfaces';
+import { UserMetrics } from '@prisma/client';
 
 export class UserHelper {
   composeUserDefaults({ user, ...data }: CreateUserDefaultsResponse): UserResponse {
@@ -17,5 +18,10 @@ export class UserHelper {
       diary,
       tierList,
     };
+  }
+
+  static parseUserMetrics(metrics: UserMetrics): UserMetricsResponse {
+    const { id: _id, idUser: _idUser, updateDate: _updateDate, ...rest } = metrics;
+    return rest;
   }
 }

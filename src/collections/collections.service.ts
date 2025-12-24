@@ -10,8 +10,10 @@ import {
 import { User } from '@supabase/supabase-js';
 import { COLLECTIONS_RESPONSES } from './collections.constants';
 import { CollectionResponse } from './collections.interface';
-import { GameStatusEnum, UserMetrics } from '@prisma/client';
+import { GameStatusEnum } from '@prisma/client';
 import { parseCollection } from './collections.utils';
+import { UserHelper } from 'src/user/user.helper';
+import { UserMetricsResponse } from 'src/user/user.interfaces';
 
 @Injectable()
 export class CollectionsService {
@@ -111,8 +113,16 @@ export class CollectionsService {
    * @param user
    * @returns
    */
-  async favoriteGame(body: FavoriteGameDto, user: User): Promise<UserMetrics> {
+  async favoriteGame(body: FavoriteGameDto, user: User): Promise<UserMetricsResponse> {
     try {
+      const favoriteAlreadyExists = await this.prisma.favorites.findFirst({
+        where: { idGame: body.idGame, idUser: user.id },
+      });
+
+      if (favoriteAlreadyExists) {
+        throw new Error(COLLECTIONS_RESPONSES.COLLECTION_GAME_ALREADY_ADDED);
+      }
+
       await this.prisma.favorites.create({
         data: {
           idGame: body.idGame,
@@ -123,11 +133,19 @@ export class CollectionsService {
         },
       });
 
-      return await this.prisma.userMetrics.update({
+      const metrics = await this.prisma.userMetrics.update({
         where: { idUser: user.id },
         data: { favoritesAmount: { increment: 1 } },
       });
-    } catch (_) {
+
+      return UserHelper.parseUserMetrics(metrics);
+    } catch (err) {
+      if (err instanceof Error && err.message === COLLECTIONS_RESPONSES.COLLECTION_GAME_ALREADY_ADDED) {
+        throw new BadRequestException('Game already added to collection', {
+          description: COLLECTIONS_RESPONSES.COLLECTION_GAME_ALREADY_ADDED,
+        });
+      }
+
       throw new BadRequestException('Failed to favorite game', {
         description: COLLECTIONS_RESPONSES.COLLECTION_FAVORITE_GAME_FAILED,
       });
@@ -139,7 +157,7 @@ export class CollectionsService {
    * @param user
    * @returns
    */
-  async updateGameStatusMetrics(user: User): Promise<UserMetrics> {
+  async updateGameStatusMetrics(user: User): Promise<UserMetricsResponse> {
     const statusCounts = await this.prisma.gameStatus.groupBy({
       by: ['status'],
       where: { idUser: user.id },
@@ -173,10 +191,12 @@ export class CollectionsService {
       }
     }
 
-    return await this.prisma.userMetrics.update({
+    const metrics = await this.prisma.userMetrics.update({
       where: { idUser: user.id },
       data: metricsUpdate,
     });
+
+    return UserHelper.parseUserMetrics(metrics);
   }
 
   /**
@@ -185,7 +205,7 @@ export class CollectionsService {
    * @param user
    * @returns
    */
-  async setGameStatus(body: SetGameStatusDto, user: User): Promise<UserMetrics> {
+  async setGameStatus(body: SetGameStatusDto, user: User): Promise<UserMetricsResponse> {
     try {
       await this.prisma.gameStatus.upsert({
         where: { idGame_idUser: { idGame: body.idGame, idUser: user.id } },
@@ -267,7 +287,7 @@ export class CollectionsService {
    * @param user
    * @returns
    */
-  async handleAddGameToCollections(id: number, body: AddGameToCollectionDto, user: User): Promise<any> {
+  async handleAddGameToCollections(body: AddGameToCollectionDto, user: User): Promise<any> {
     switch (body.type) {
       case COLLECTION_TYPE.favorite:
         return this.favoriteGame(body, user);
@@ -282,7 +302,13 @@ export class CollectionsService {
         return this.setGameStatus({ ...body, status: body.status }, user);
 
       case COLLECTION_TYPE.collection: {
-        return this.addGameToCollection(id, body, user);
+        if (!body.idCollection) {
+          throw new BadRequestException('Collection ID is required', {
+            description: COLLECTIONS_RESPONSES.COLLECTION_ID_REQUIRED,
+          });
+        }
+
+        return this.addGameToCollection(body.idCollection, body, user);
       }
 
       default:
