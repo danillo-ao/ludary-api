@@ -172,9 +172,9 @@ model Blocks {
 model Review {
   id              Int       @id @default(autoincrement())
   idGame          Int
-  gameCover       String
+  gameCover       String?
   gameName        String
-  gameDescription String
+  gameDescription String?
   idUser          String
   rate            Float
   review          String
@@ -221,9 +221,9 @@ model GamesInCollections {
   id              Int      @id @default(autoincrement())
   idCollection    Int
   idGame          Int
-  gameCover       String
+  gameCover       String?
   gameName        String
-  gameDescription String
+  gameDescription String?
   idUser          String
   createDate      DateTime @default(now())
 
@@ -245,9 +245,9 @@ model GameStatus {
   idGame          Int
   idUser          String
   status          GameStatusEnum
-  gameCover       String
+  gameCover       String?
   gameName        String
-  gameDescription String
+  gameDescription String?
   createDate      DateTime       @default(now())
   updateDate      DateTime       @default(now())
   //
@@ -259,9 +259,9 @@ model GameStatus {
 model Favorites {
   id              Int      @id @default(autoincrement())
   idGame          Int
-  gameCover       String
+  gameCover       String?
   gameName        String
-  gameDescription String
+  gameDescription String?
   idUser          String
   createDate      DateTime @default(now())
   //
