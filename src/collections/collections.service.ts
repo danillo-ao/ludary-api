@@ -9,11 +9,18 @@ import {
 } from './collections.dto';
 import { User } from '@supabase/supabase-js';
 import { COLLECTIONS_RESPONSES } from './collections.constants';
-import { CollectionResponse } from './collections.interface';
+import {
+  CollectionResponse,
+  FavoriteGameListResponse,
+  GameInCollectionListResponse,
+  GameStatusListResponse,
+} from './collections.interface';
 import { GameStatusEnum } from '@prisma/client';
 import { parseCollection } from './collections.utils';
 import { UserHelper } from 'src/user/user.helper';
 import { UserMetricsResponse } from 'src/user/user.interfaces';
+import { PaginatedResponse } from 'src/utils/pagination/pagination.interface';
+import { createPaginatedResponse } from 'src/utils/pagination/pagination.util';
 
 @Injectable()
 export class CollectionsService {
@@ -276,6 +283,147 @@ export class CollectionsService {
 
       throw new BadRequestException('Failed to add game to collection', {
         description: COLLECTIONS_RESPONSES.COLLECTION_ADD_GAME_FAILED,
+      });
+    }
+  }
+
+  /**
+   *
+   * @param collectionId
+   * @param page
+   * @param limit
+   * @param user
+   * @returns
+   */
+  async getGamesFromCollectionList(
+    collectionId: number,
+    page: number,
+    limit: number,
+    user: User,
+  ): Promise<PaginatedResponse<GameInCollectionListResponse>> {
+    try {
+      // Verify the collection exists and belongs to the user
+      const collection = await this.prisma.collections.findFirst({
+        where: { id: collectionId, idUser: user.id },
+      });
+
+      if (!collection) {
+        throw new BadRequestException('Collection not found', {
+          description: COLLECTIONS_RESPONSES.COLLECTION_GET_FAILED,
+        });
+      }
+
+      const skip = (page - 1) * limit;
+
+      // Get games with pagination
+      const [games, total] = await Promise.all([
+        this.prisma.gamesInCollections.findMany({
+          where: { idCollection: collectionId, idUser: user.id },
+          skip,
+          take: limit,
+          orderBy: { createDate: 'desc' },
+        }),
+        this.prisma.gamesInCollections.count({
+          where: { idCollection: collectionId, idUser: user.id },
+        }),
+      ]);
+
+      // Transform games to response format (remove idCollection and idUser)
+      const gamesResponse: GameInCollectionListResponse[] = games.map((game) => {
+        const { idCollection: _idCollection, idUser: _idUser, ...rest } = game;
+        return rest as GameInCollectionListResponse;
+      });
+
+      return createPaginatedResponse<GameInCollectionListResponse>(gamesResponse, page, limit, total);
+    } catch (err) {
+      if (err instanceof BadRequestException) {
+        throw err;
+      }
+
+      throw new BadRequestException('Failed to get games from collection', {
+        description: COLLECTIONS_RESPONSES.COLLECTION_GET_FAILED,
+      });
+    }
+  }
+
+  /**
+   *
+   * @param page
+   * @param limit
+   * @param user
+   * @returns
+   */
+  async getFavoriteGamesList(
+    page: number,
+    limit: number,
+    user: User,
+  ): Promise<PaginatedResponse<FavoriteGameListResponse>> {
+    try {
+      const skip = (page - 1) * limit;
+
+      // Get games with pagination
+      const [games, total] = await Promise.all([
+        this.prisma.favorites.findMany({
+          where: { idUser: user.id },
+          skip,
+          take: limit,
+          orderBy: { createDate: 'desc' },
+        }),
+        this.prisma.favorites.count({ where: { idUser: user.id } }),
+      ]);
+
+      // Transform games to response format (remove id and idUser)
+      const gamesResponse: FavoriteGameListResponse[] = games.map((game) => {
+        const { id: _id, idUser: _idUser, ...rest } = game;
+        return rest as FavoriteGameListResponse;
+      });
+
+      return createPaginatedResponse<FavoriteGameListResponse>(gamesResponse, page, limit, total);
+    } catch (_) {
+      throw new BadRequestException('Failed to get favorite games', {
+        description: COLLECTIONS_RESPONSES.COLLECTION_GET_FAILED,
+      });
+    }
+  }
+
+  /**
+   *
+   * @param status
+   * @param page
+   * @param limit
+   * @param user
+   * @returns
+   */
+  async getStatusGamesList(
+    status: GameStatusEnum,
+    page: number,
+    limit: number,
+    user: User,
+  ): Promise<PaginatedResponse<GameStatusListResponse>> {
+    try {
+      const skip = (page - 1) * limit;
+
+      // Get games with pagination
+      const [games, total] = await Promise.all([
+        this.prisma.gameStatus.findMany({
+          where: { status, idUser: user.id },
+          skip,
+          take: limit,
+          orderBy: { createDate: 'desc' },
+        }),
+        this.prisma.gameStatus.count({ where: { status, idUser: user.id } }),
+      ]);
+
+      // Transform games to response format (remove idCollection and idUser)
+      const gamesResponse: GameStatusListResponse[] = games.map((game) => {
+        const { id: _id, idUser: _idUser, ...rest } = game;
+        return rest as GameStatusListResponse;
+      });
+
+      return createPaginatedResponse<GameStatusListResponse>(gamesResponse, page, limit, total);
+    } catch (_) {
+      throw new BadRequestException('Failed to get status games', {
+        description: COLLECTIONS_RESPONSES.COLLECTION_GET_FAILED,
       });
     }
   }
