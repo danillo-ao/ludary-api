@@ -72,3 +72,19 @@ export class AddGameToCollectionDto extends GameToCollectionDto {
   @IsOptional()
   status?: GameStatusEnum;
 }
+
+export class RemoveGameFromCollectionDto {
+  @IsNumber()
+  @IsOptional()
+  @Transform(({ value }: TransformFnParams) => parseInt(String(value), 10))
+  idCollection?: number;
+
+  @IsEnum(COLLECTION_TYPE)
+  @IsNotEmpty()
+  type: COLLECTION_TYPE;
+
+  @IsNumber()
+  @IsNotEmpty()
+  @Transform(({ value }: TransformFnParams) => parseInt(String(value), 10))
+  idGame?: number;
+}

@@ -16,7 +16,7 @@ import { CollectionsService } from './collections.service';
 import { UserDecorator } from 'src/auth/auth.decorator';
 import { User } from '@supabase/supabase-js';
 import { SupabaseAuthGuard } from 'src/auth/auth.guard';
-import { CollectionDto, AddGameToCollectionDto } from './collections.dto';
+import { CollectionDto, AddGameToCollectionDto, RemoveGameFromCollectionDto } from './collections.dto';
 import { CollectionResponse, FavoriteGameListResponse, GameInCollectionListResponse } from './collections.interface';
 import { PaginationQueryDto } from 'src/utils/pagination/pagination.dto';
 import { PaginatedResponse } from 'src/utils/pagination/pagination.interface';
@@ -92,7 +92,13 @@ export class CollectionsController {
 
   @Post('game')
   @UseGuards(SupabaseAuthGuard)
-  addGameToCollection(@UserDecorator() user: User, @Body() body: AddGameToCollectionDto): Promise<void> {
+  addGameToCollection(@UserDecorator() user: User, @Body() body: AddGameToCollectionDto): Promise<any> {
     return this.collectionsService.handleAddGameToCollections(body, user);
+  }
+
+  @Delete('game')
+  @UseGuards(SupabaseAuthGuard)
+  removeGameFromCollection(@UserDecorator() user: User, @Body() body: RemoveGameFromCollectionDto): Promise<any> {
+    return this.collectionsService.handleRemoveGameFromCollections(body, user);
   }
 }

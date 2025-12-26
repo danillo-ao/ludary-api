@@ -229,6 +229,8 @@ model GamesInCollections {
 
   user       User        @relation(fields: [idUser], references: [id], onDelete: Cascade)
   collection Collections @relation(fields: [idCollection], references: [id], onDelete: Cascade)
+
+  @@unique([idGame, idCollection, idUser])
 }
 
 enum GameStatusEnum {
