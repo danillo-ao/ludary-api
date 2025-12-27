@@ -9,9 +9,15 @@ export class GameService {
   @Inject(IgdbService)
   private readonly igdbService: IgdbService;
 
+  // ===============================
+  // GAME SEARCH OPERATIONS
+  // ===============================
+
   /**
-   * @param game - The query to search for
-   * @returns The games found
+   * Searches for games using IGDB API by combining results from search and name-based queries.
+   * Returns a unified list of unique games based on their ID.
+   * @param game The search query string
+   * @returns Array of unique game search results
    */
   async searchGame(game: string): Promise<GameSearchResponse[]> {
     const queryString = IGDBQueries.searchGame(game);

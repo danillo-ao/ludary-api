@@ -24,6 +24,15 @@ export class UserService {
   @Inject(CloudflareService)
   private readonly cloudflare: CloudflareService;
 
+  // ===============================
+  // USER REGISTRATION OPERATIONS
+  // ===============================
+
+  /**
+   * Registers a new user in the system.
+   * @param registerUserDto User registration data (email, password, nickname, name)
+   * @returns The created user with all default data
+   */
   async registerUser(registerUserDto: RegisterUserDto): Promise<UserResponse> {
     const { email, password, nickname } = registerUserDto;
 
@@ -47,6 +56,12 @@ export class UserService {
     return this.userHelper.composeUserDefaults(defaults);
   }
 
+  /**
+   * Creates default user data including badges, metrics, privacy, diary, and tier list.
+   * @param idUser User ID from Supabase
+   * @param dto User registration data
+   * @returns All created user default entities
+   */
   async createUserDefaults(idUser: string, dto: RegisterUserDto): Promise<CreateUserDefaultsResponse> {
     try {
       const user = await this.prisma.user.create({
@@ -67,20 +82,16 @@ export class UserService {
     }
   }
 
-  async getUserAccess(nickname: string): Promise<GetUserAccessResponse> {
-    try {
-      const user = await this.prisma.user.findFirst({ where: { nickname } });
-      if (!user) {
-        throw new BadRequestException('User not found', { description: USER_RESPONSES.USER_NOT_FOUND });
-      }
-      return { email: user.email };
-    } catch (_) {
-      throw new BadRequestException('Failed to get user access', {
-        description: USER_RESPONSES.USER_NOT_FOUND,
-      });
-    }
-  }
+  // ===============================
+  // USER PROFILE OPERATIONS
+  // ===============================
 
+  /**
+   * Retrieves a user's profile information.
+   * @param id User ID
+   * @param request Request object to check authentication and ownership
+   * @returns User profile data (privacy and diary only visible to the user themselves)
+   */
   async getUserProfile(id: string, request: Request): Promise<UserResponse> {
     try {
       const userData = await this.prisma.user.findFirst({
@@ -121,6 +132,13 @@ export class UserService {
     }
   }
 
+  /**
+   * Updates a user's profile information including name and avatar.
+   * @param updateUserProfileDto Updated profile data (name)
+   * @param file Optional avatar file to upload
+   * @param user The authenticated user
+   * @returns Updated profile data (name, avatar)
+   */
   async updateUserProfile(
     updateUserProfileDto: UpdateUserProfileDto,
     file: Express.Multer.File,
@@ -155,6 +173,39 @@ export class UserService {
     }
   }
 
+  // ===============================
+  // USER ACCESS OPERATIONS
+  // ===============================
+
+  /**
+   * Retrieves user access information by nickname.
+   * @param nickname User nickname
+   * @returns User email for access purposes
+   */
+  async getUserAccess(nickname: string): Promise<GetUserAccessResponse> {
+    try {
+      const user = await this.prisma.user.findFirst({ where: { nickname } });
+      if (!user) {
+        throw new BadRequestException('User not found', { description: USER_RESPONSES.USER_NOT_FOUND });
+      }
+      return { email: user.email };
+    } catch (_) {
+      throw new BadRequestException('Failed to get user access', {
+        description: USER_RESPONSES.USER_NOT_FOUND,
+      });
+    }
+  }
+
+  // ===============================
+  // USER PRIVACY OPERATIONS
+  // ===============================
+
+  /**
+   * Updates user privacy settings for profile and collections visibility.
+   * @param updateUserPrivacyDto Privacy settings data
+   * @param user The authenticated user
+   * @returns Updated privacy settings
+   */
   async updateUserPrivacy(updateUserPrivacyDto: UpdateUserPrivacyDto, user: User): Promise<UserResponse['privacy']> {
     try {
       const { profile, favorites, backlog, wishlist, playing, paused, finished, dropped } = updateUserPrivacyDto;

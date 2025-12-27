@@ -50,12 +50,13 @@ export class IgdbService implements OnModuleInit {
     );
   }
 
-  async onModuleInit() {
-    await this.login();
-  }
+  // ===============================
+  // PRIVATE HELPER METHODS
+  // ===============================
 
   /**
-   * Authenticates with Twitch OAuth2 and retrieves an access token
+   * Authenticates with Twitch OAuth2 and retrieves an access token.
+   * Updates the access token and expiration time for API requests.
    */
   private async login(): Promise<void> {
     try {
@@ -77,17 +78,36 @@ export class IgdbService implements OnModuleInit {
     }
   }
 
+  // ===============================
+  // AUTHENTICATION OPERATIONS
+  // ===============================
+
   /**
-   * Get the axios client instance
+   * Initializes the service by authenticating with IGDB API.
+   * Called automatically when the module is initialized.
    */
-  getClient(): AxiosInstance {
-    return this.client;
+  async onModuleInit(): Promise<void> {
+    await this.login();
   }
 
   /**
-   * Manually refresh the access token
+   * Manually refreshes the access token.
+   * Useful for forcing a token refresh before it expires.
    */
   async refreshToken(): Promise<void> {
     await this.login();
+  }
+
+  // ===============================
+  // CLIENT OPERATIONS
+  // ===============================
+
+  /**
+   * Returns the configured axios client instance for making IGDB API requests.
+   * The client automatically handles token refresh and includes authentication headers.
+   * @returns The axios client instance
+   */
+  getClient(): AxiosInstance {
+    return this.client;
   }
 }

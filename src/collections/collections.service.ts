@@ -16,7 +16,7 @@ import {
   GameInCollectionListResponse,
   GameStatusListResponse,
 } from './collections.interface';
-import { GameStatusEnum } from '@prisma/client';
+import { Collections, GameStatusEnum, UserMetrics } from '@prisma/client';
 import { parseCollection } from './collections.utils';
 import { UserHelper } from 'src/user/user.helper';
 import { UserMetricsResponse } from 'src/user/user.interfaces';
@@ -27,6 +27,10 @@ import { createPaginatedResponse } from 'src/utils/pagination/pagination.util';
 export class CollectionsService {
   @Inject(PrismaService)
   private readonly prisma: PrismaService;
+
+  // ===============================
+  // PRIVATE HELPER METHODS
+  // ===============================
 
   /**
    * Handles the "game already added" error by checking if the error matches
@@ -42,11 +46,15 @@ export class CollectionsService {
     }
   }
 
+  // ===============================
+  // COLLECTION CRUD OPERATIONS
+  // ===============================
+
   /**
-   *
-   * @param body
-   * @param user
-   * @returns
+   * Creates a new collection for the user.
+   * @param body Collection data (name, description, icon, color, public)
+   * @param user The authenticated user
+   * @returns The created collection
    */
   async createCollection(body: CollectionDto, user: User): Promise<CollectionResponse> {
     try {
@@ -70,11 +78,11 @@ export class CollectionsService {
   }
 
   /**
-   *
-   * @param id
-   * @param body
-   * @param user
-   * @returns
+   * Updates an existing collection.
+   * @param id Collection ID
+   * @param body Updated collection data
+   * @param user The authenticated user
+   * @returns The updated collection
    */
   async updateCollection(id: number, body: CollectionDto, user: User): Promise<CollectionResponse> {
     try {
@@ -98,9 +106,9 @@ export class CollectionsService {
   }
 
   /**
-   *
-   * @param user
-   * @returns
+   * Retrieves all collections for the user.
+   * @param user The authenticated user
+   * @returns Array of user's collections
    */
   async getCollections(user: User): Promise<CollectionResponse[]> {
     try {
@@ -118,9 +126,9 @@ export class CollectionsService {
   }
 
   /**
-   *
-   * @param id
-   * @param user
+   * Deletes a collection.
+   * @param id Collection ID
+   * @param user The authenticated user
    */
   async deleteCollection(id: number, user: User): Promise<void> {
     try {
@@ -132,11 +140,15 @@ export class CollectionsService {
     }
   }
 
+  // ===============================
+  // FAVORITE GAMES OPERATIONS
+  // ===============================
+
   /**
-   *
-   * @param body
-   * @param user
-   * @returns
+   * Adds a game to the user's favorites.
+   * @param body Game data to favorite
+   * @param user The authenticated user
+   * @returns Updated user metrics
    */
   async favoriteGame(body: FavoriteGameDto, user: User): Promise<UserMetricsResponse> {
     try {
@@ -158,11 +170,7 @@ export class CollectionsService {
         },
       });
 
-      const metrics = await this.prisma.userMetrics.update({
-        where: { idUser: user.id },
-        data: { favoritesAmount: { increment: 1 } },
-      });
-
+      const metrics = await this.updateFavoriteGamesAmount(user.id);
       return UserHelper.parseUserMetrics(metrics);
     } catch (err) {
       this.handleGameAlreadyAddedError(err);
@@ -174,20 +182,15 @@ export class CollectionsService {
   }
 
   /**
-   *
-   * @param body
-   * @param user
-   * @returns
+   * Removes a game from the user's favorites.
+   * @param body Game data to remove from favorites
+   * @param user The authenticated user
+   * @returns Updated user metrics
    */
   async removeGameFromFavorite(body: RemoveGameFromCollectionDto, user: User): Promise<UserMetricsResponse> {
     try {
       await this.prisma.favorites.delete({ where: { idGame_idUser: { idGame: body.idGame!, idUser: user.id } } });
-
-      const metrics = await this.prisma.userMetrics.update({
-        where: { idUser: user.id },
-        data: { favoritesAmount: { decrement: 1 } },
-      });
-
+      const metrics = await this.updateFavoriteGamesAmount(user.id);
       return UserHelper.parseUserMetrics(metrics);
     } catch (_) {
       throw new BadRequestException('Failed to remove game from favorite', {
@@ -196,11 +199,15 @@ export class CollectionsService {
     }
   }
 
+  // ===============================
+  // GAME STATUS OPERATIONS
+  // ===============================
+
   /**
-   *
-   * @param body
-   * @param user
-   * @returns
+   * Removes a game from the user's status list.
+   * @param body Game data to remove from status
+   * @param user The authenticated user
+   * @returns Updated user metrics
    */
   async removeGameFromStatus(body: RemoveGameFromCollectionDto, user: User): Promise<UserMetricsResponse> {
     try {
@@ -214,9 +221,219 @@ export class CollectionsService {
   }
 
   /**
-   *
-   * @param user
-   * @returns
+   * Sets or updates a game's status for the user.
+   * @param body Game status data
+   * @param user The authenticated user
+   * @returns Updated user metrics
+   */
+  async setGameStatus(body: SetGameStatusDto, user: User): Promise<UserMetricsResponse> {
+    try {
+      const gameAlreadySet = await this.prisma.gameStatus.findFirst({
+        where: { idGame: body.idGame, status: body.status, idUser: user.id },
+      });
+
+      if (gameAlreadySet) {
+        throw new Error(COLLECTIONS_RESPONSES.COLLECTION_GAME_ALREADY_ADDED);
+      }
+
+      await this.prisma.gameStatus.upsert({
+        where: { idGame_idUser: { idGame: body.idGame, idUser: user.id } },
+        update: { status: body.status },
+        create: {
+          idGame: body.idGame,
+          idUser: user.id,
+          status: body.status,
+          gameName: body.gameName,
+          gameCover: body.gameCover,
+          gameDescription: body.gameDescription,
+        },
+      });
+
+      return this.updateGameStatusMetrics(user);
+    } catch (err) {
+      this.handleGameAlreadyAddedError(err);
+
+      throw new BadRequestException('Failed to set game status', {
+        description: COLLECTIONS_RESPONSES.COLLECTION_SET_GAME_STATUS_FAILED,
+      });
+    }
+  }
+
+  // ===============================
+  // COLLECTION GAMES OPERATIONS
+  // ===============================
+
+  /**
+   * Adds a game to a specific collection.
+   * @param collectionId Collection ID
+   * @param body Game data to add
+   * @param user The authenticated user
+   * @returns Updated collection
+   */
+  async addGameToCollection(
+    collectionId: number,
+    body: AddGameToCollectionDto,
+    user: User,
+  ): Promise<CollectionResponse> {
+    try {
+      const gameAlreadyAdded = await this.prisma.gamesInCollections.findFirst({
+        where: { idGame: body.idGame, idCollection: collectionId, idUser: user.id },
+      });
+
+      if (gameAlreadyAdded) {
+        throw new Error(COLLECTIONS_RESPONSES.COLLECTION_GAME_ALREADY_ADDED);
+      }
+
+      await this.prisma.gamesInCollections.create({
+        data: {
+          idGame: body.idGame,
+          gameCover: body.gameCover,
+          gameDescription: body.gameDescription,
+          gameName: body.gameName,
+          user: { connect: { id: user.id } },
+          collection: { connect: { id: collectionId } },
+        },
+      });
+
+      // After adding a game, update the gamesAmount for this collection
+      const collection = await this.updateCollectionGamesAmount(collectionId);
+      return parseCollection(collection);
+    } catch (err) {
+      this.handleGameAlreadyAddedError(err);
+
+      throw new BadRequestException('Failed to add game to collection', {
+        description: COLLECTIONS_RESPONSES.COLLECTION_ADD_GAME_FAILED,
+      });
+    }
+  }
+
+  /**
+   * Removes a game from a specific collection.
+   * @param body Game and collection data
+   * @param user The authenticated user
+   * @returns Updated collection
+   */
+  async removeGameFromCollection(body: RemoveGameFromCollectionDto, user: User): Promise<CollectionResponse> {
+    try {
+      await this.prisma.gamesInCollections.delete({
+        where: {
+          idGame_idCollection_idUser: { idGame: body.idGame!, idCollection: body.idCollection!, idUser: user.id },
+        },
+      });
+
+      // After removing a game, update the gamesAmount for this collection
+      const collection = await this.updateCollectionGamesAmount(body.idCollection!);
+      return parseCollection(collection);
+    } catch (_) {
+      throw new BadRequestException('Failed to remove game from collection', {
+        description: COLLECTIONS_RESPONSES.COLLECTION_REMOVE_GAME,
+      });
+    }
+  }
+
+  // ===============================
+  // ROUTER/HANDLER METHODS
+  // ===============================
+
+  /**
+   * Routes game addition to the appropriate collection type handler.
+   * @param body Game data with collection type
+   * @param user The authenticated user
+   * @returns Result from the appropriate handler
+   */
+  async handleAddGameToCollections(body: AddGameToCollectionDto, user: User): Promise<any> {
+    switch (body.type) {
+      case COLLECTION_TYPE.favorite:
+        return this.favoriteGame(body, user);
+
+      case COLLECTION_TYPE.status:
+        if (!body.status) {
+          throw new BadRequestException('Status is required for status collections', {
+            description: COLLECTIONS_RESPONSES.COLLECTION_SET_GAME_STATUS_FAILED,
+          });
+        }
+
+        return this.setGameStatus({ ...body, status: body.status }, user);
+
+      case COLLECTION_TYPE.collection: {
+        if (!body.idCollection) {
+          throw new BadRequestException('Collection ID is required', {
+            description: COLLECTIONS_RESPONSES.COLLECTION_ID_REQUIRED,
+          });
+        }
+
+        return this.addGameToCollection(body.idCollection, body, user);
+      }
+
+      default:
+        throw new BadRequestException('Invalid collection type', {
+          description: COLLECTIONS_RESPONSES.COLLECTION_INVALID_TYPE,
+        });
+    }
+  }
+
+  /**
+   * Routes game removal to the appropriate collection type handler.
+   * @param body Game data with collection type
+   * @param user The authenticated user
+   * @returns Result from the appropriate handler
+   */
+  async handleRemoveGameFromCollections(body: RemoveGameFromCollectionDto, user: User): Promise<any> {
+    switch (body.type) {
+      case COLLECTION_TYPE.favorite:
+        return this.removeGameFromFavorite(body, user);
+
+      case COLLECTION_TYPE.status:
+        return this.removeGameFromStatus(body, user);
+
+      case COLLECTION_TYPE.collection:
+      default:
+        return this.removeGameFromCollection(body, user);
+    }
+  }
+
+  //
+  // ===============================
+  // UPDATE AMOUNTS
+  // ===============================
+  //
+
+  /**
+   * Updates the games count for a collection.
+   * @param collectionId Collection ID
+   * @returns Updated collection with new amount
+   */
+  async updateCollectionGamesAmount(collectionId: number): Promise<Collections> {
+    const amount = await this.prisma.gamesInCollections.count({
+      where: { idCollection: collectionId },
+    });
+
+    return await this.prisma.collections.update({
+      where: { id: collectionId },
+      data: { amount },
+    });
+  }
+
+  /**
+   * Updates the favorite games count for a user.
+   * @param userId User ID
+   * @returns Updated user metrics
+   */
+  async updateFavoriteGamesAmount(userId: string): Promise<UserMetrics> {
+    const amount = await this.prisma.favorites.count({
+      where: { idUser: userId },
+    });
+
+    return await this.prisma.userMetrics.update({
+      where: { idUser: userId },
+      data: { favoritesAmount: amount },
+    });
+  }
+
+  /**
+   * Updates all game status metrics for a user (backlog, playing, paused, etc.).
+   * @param user The authenticated user
+   * @returns Updated user metrics
    */
   async updateGameStatusMetrics(user: User): Promise<UserMetricsResponse> {
     const statusCounts = await this.prisma.gameStatus.groupBy({
@@ -260,128 +477,19 @@ export class CollectionsService {
     return UserHelper.parseUserMetrics(metrics);
   }
 
-  /**
-   *
-   * @param body
-   * @param user
-   * @returns
-   */
-  async setGameStatus(body: SetGameStatusDto, user: User): Promise<UserMetricsResponse> {
-    try {
-      const gameAlreadySet = await this.prisma.gameStatus.findFirst({
-        where: { idGame: body.idGame, status: body.status, idUser: user.id },
-      });
-
-      if (gameAlreadySet) {
-        throw new Error(COLLECTIONS_RESPONSES.COLLECTION_GAME_ALREADY_ADDED);
-      }
-
-      await this.prisma.gameStatus.upsert({
-        where: { idGame_idUser: { idGame: body.idGame, idUser: user.id } },
-        update: { status: body.status },
-        create: {
-          idGame: body.idGame,
-          idUser: user.id,
-          status: body.status,
-          gameName: body.gameName,
-          gameCover: body.gameCover,
-          gameDescription: body.gameDescription,
-        },
-      });
-
-      return this.updateGameStatusMetrics(user);
-    } catch (err) {
-      this.handleGameAlreadyAddedError(err);
-
-      throw new BadRequestException('Failed to set game status', {
-        description: COLLECTIONS_RESPONSES.COLLECTION_SET_GAME_STATUS_FAILED,
-      });
-    }
-  }
+  //
+  // ===============================
+  // GET LISTS
+  // ===============================
+  //
 
   /**
-   *
-   * @param collectionId
-   * @param body
-   * @param user
-   * @returns
-   */
-  async addGameToCollection(
-    collectionId: number,
-    body: AddGameToCollectionDto,
-    user: User,
-  ): Promise<CollectionResponse> {
-    try {
-      const gameAlreadyAdded = await this.prisma.gamesInCollections.findFirst({
-        where: { idGame: body.idGame, idCollection: collectionId, idUser: user.id },
-      });
-
-      if (gameAlreadyAdded) {
-        throw new Error(COLLECTIONS_RESPONSES.COLLECTION_GAME_ALREADY_ADDED);
-      }
-
-      await this.prisma.gamesInCollections.create({
-        data: {
-          idGame: body.idGame,
-          gameCover: body.gameCover,
-          gameDescription: body.gameDescription,
-          gameName: body.gameName,
-          user: { connect: { id: user.id } },
-          collection: { connect: { id: collectionId } },
-        },
-      });
-
-      // After adding a game, update the gamesAmount for this collection
-      const collection = await this.prisma.collections.update({
-        where: { id: collectionId },
-        data: { amount: { increment: 1 } },
-      });
-
-      return parseCollection(collection);
-    } catch (err) {
-      this.handleGameAlreadyAddedError(err);
-
-      throw new BadRequestException('Failed to add game to collection', {
-        description: COLLECTIONS_RESPONSES.COLLECTION_ADD_GAME_FAILED,
-      });
-    }
-  }
-
-  /**
-   *
-   * @param body
-   * @param user
-   * @returns
-   */
-  async removeGameFromCollection(body: RemoveGameFromCollectionDto, user: User): Promise<CollectionResponse> {
-    try {
-      await this.prisma.gamesInCollections.delete({
-        where: {
-          idGame_idCollection_idUser: { idGame: body.idGame!, idCollection: body.idCollection!, idUser: user.id },
-        },
-      });
-
-      // After adding a game, update the gamesAmount for this collection
-      const collection = await this.prisma.collections.update({
-        where: { id: body.idCollection! },
-        data: { amount: { decrement: 1 } },
-      });
-
-      return parseCollection(collection);
-    } catch (_) {
-      throw new BadRequestException('Failed to remove game from collection', {
-        description: COLLECTIONS_RESPONSES.COLLECTION_REMOVE_GAME,
-      });
-    }
-  }
-
-  /**
-   *
-   * @param collectionId
-   * @param page
-   * @param limit
-   * @param user
-   * @returns
+   * Retrieves a paginated list of games from a specific collection.
+   * @param collectionId Collection ID
+   * @param page Page number
+   * @param limit Items per page
+   * @param user The authenticated user
+   * @returns Paginated list of games in the collection
    */
   async getGamesFromCollectionList(
     collectionId: number,
@@ -435,11 +543,11 @@ export class CollectionsService {
   }
 
   /**
-   *
-   * @param page
-   * @param limit
-   * @param user
-   * @returns
+   * Retrieves a paginated list of favorite games for the user.
+   * @param page Page number
+   * @param limit Items per page
+   * @param user The authenticated user
+   * @returns Paginated list of favorite games
    */
   async getFavoriteGamesList(
     page: number,
@@ -475,12 +583,12 @@ export class CollectionsService {
   }
 
   /**
-   *
-   * @param status
-   * @param page
-   * @param limit
-   * @param user
-   * @returns
+   * Retrieves a paginated list of games with a specific status for the user.
+   * @param status Game status to filter by
+   * @param page Page number
+   * @param limit Items per page
+   * @param user The authenticated user
+   * @returns Paginated list of games with the specified status
    */
   async getStatusGamesList(
     status: GameStatusEnum,
@@ -513,64 +621,6 @@ export class CollectionsService {
       throw new BadRequestException('Failed to get status games', {
         description: COLLECTIONS_RESPONSES.COLLECTION_GET_FAILED,
       });
-    }
-  }
-
-  /**
-   *
-   * @param id
-   * @param body
-   * @param user
-   * @returns
-   */
-  async handleAddGameToCollections(body: AddGameToCollectionDto, user: User): Promise<any> {
-    switch (body.type) {
-      case COLLECTION_TYPE.favorite:
-        return this.favoriteGame(body, user);
-
-      case COLLECTION_TYPE.status:
-        if (!body.status) {
-          throw new BadRequestException('Status is required for status collections', {
-            description: COLLECTIONS_RESPONSES.COLLECTION_SET_GAME_STATUS_FAILED,
-          });
-        }
-
-        return this.setGameStatus({ ...body, status: body.status }, user);
-
-      case COLLECTION_TYPE.collection: {
-        if (!body.idCollection) {
-          throw new BadRequestException('Collection ID is required', {
-            description: COLLECTIONS_RESPONSES.COLLECTION_ID_REQUIRED,
-          });
-        }
-
-        return this.addGameToCollection(body.idCollection, body, user);
-      }
-
-      default:
-        throw new BadRequestException('Invalid collection type', {
-          description: COLLECTIONS_RESPONSES.COLLECTION_INVALID_TYPE,
-        });
-    }
-  }
-
-  /**
-   *
-   * @param body
-   * @param user
-   * @returns
-   */
-  async handleRemoveGameFromCollections(body: RemoveGameFromCollectionDto, user: User): Promise<any> {
-    switch (body.type) {
-      case COLLECTION_TYPE.favorite:
-        return this.removeGameFromFavorite(body, user);
-
-      case COLLECTION_TYPE.status:
-        return this.removeGameFromStatus(body, user);
-
-      case COLLECTION_TYPE.collection:
-      default:
-        return this.removeGameFromCollection(body, user);
     }
   }
 }
